@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>OntarioMapy</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+          integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+          crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+            integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+            crossorigin=""></script>
+    <style>
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map').setView([0, 0], 1);
+
+        L.tileLayer('https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV', { attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' }).addTo(map);
+        var marker = L.marker([51.5, 10.09]).addTo(map);
+
+        var circle = L.circle([50, 20], { color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 500 }).addTo(map);
+        var polygon = L.polygon([[50, 10], [40, 20], [60, 30], [70, 40]]).addTo(map);
+
+        marker.bindPopup("<b> Hey There!<b><br> I am a marker.").openPopup()
+        circle.bindPopup("Hey");
+        polygon.bindPopup("hello");
+        
+        //polygon.bindPopup("hello");
+    </script>
+</body>
+</html>
