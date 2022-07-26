@@ -1,0 +1,12 @@
+[Unit]
+Description=Kronikomapy web app
+
+[Service]
+User=someuser
+WorkingDirectory=/some/where
+ExecStart=/usr/bin/python3 app.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
