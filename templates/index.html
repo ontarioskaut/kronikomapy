@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="cs" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
     <title>OntarioMapy</title>
@@ -24,13 +24,17 @@
 <body>
     <div id="map"></div>
     <script>
+        var maptiles = [
+        {name: "OpenStreetMap_Mapnik", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attr: {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }},
+        {name: "OpenTopoMap", url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", attr: {attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)' }},
+        {name: "Esri_NatGeoWorldMap", url: "https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", attr: {attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC' }},
+        {name: "MapTiler", url: "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV", attr: {attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' }},
+        ];
+        selectedtiles = 2;
         //https://www.youtube.com/watch?v=wnsEYm9hF0o
 
-
-
-        var map = L.map('map').setView([0, 0], 1);
-
-        L.tileLayer('https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV', { attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' }).addTo(map);
+        var map = L.map('map').setView([49.699, 15.781], 8); //show ČR
+        L.tileLayer(maptiles[selectedtiles].url, maptiles[selectedtiles].attr).addTo(map);
 
         //var leafletIcon = L.icon({
         //    iconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-green.png',
