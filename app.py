@@ -73,6 +73,10 @@ def username():
 def mainpage():
     return template('templates/index.html')
 
+@route('/mapfeatures.json')
+def features():
+    return static_file("features.json", root="static");
+
 app = default_app()
 app = SessionMiddleware(app, session_opts)
 run(app=app,host='localhost', port=6969, debug=True, server='paste') 

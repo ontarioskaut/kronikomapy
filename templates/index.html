@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
           integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
           crossorigin="" />
+    
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
             integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
             crossorigin=""></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         #map {
             position: absolute;
@@ -18,47 +21,170 @@
             left: 0;
             right: 0
         }
+        #export {
+            position: absolute;
+            top: 600px;
+            z-index: 10000;
+            background: white;
+            color: black;
+            padding: 6px;
+            border-radius: 4px;
+            font-family: 'Helvetica Neue';
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        #export {
+            top: 370px;
+        }
     </style>
 </head>
 
 <body>
+    <a href='#' id='export' onclick="save()">Export Features to GeoJSON</a>
     <div id="map"></div>
     <script>
+        var features = "/mapfeatures.json";
         var maptiles = [
-        {name: "OpenStreetMap_Mapnik", url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attr: {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }},
-        {name: "OpenTopoMap", url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", attr: {attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)' }},
-        {name: "Esri_NatGeoWorldMap", url: "https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", attr: {attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC' }},
-        {name: "MapTiler", url: "https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV", attr: {attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' }},
+        {name: "OpenStreetMap_Mapnik", tile: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' })},
+        {name: "OpenTopoMap", tile: L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)' })},
+        {name: "Esri_NatGeoWorldMap", tile: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", {limZoom: 11, attribution: 'Tiles &copy; Esri &mdash; National Geographic' })},
+        {name: "MapTiler", tile: L.tileLayer("https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV", {attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' })},
         ];
         selectedtiles = 2;
-        //https://www.youtube.com/watch?v=wnsEYm9hF0o
 
         var map = L.map('map').setView([49.699, 15.781], 8); //show ČR
-        L.tileLayer(maptiles[selectedtiles].url, maptiles[selectedtiles].attr).addTo(map);
+        var drawnItems = L.featureGroup().addTo(map); //map features
+        maptiles[selectedtiles].tile.addTo(map);
+        
+        map.on("zoomend", function(e){ //change tiles to #0 if zoomed over limZoom opion
+	        if(map.getZoom() > maptiles[selectedtiles].tile.options.limZoom){
+                map.removeLayer(maptiles[selectedtiles].tile);
+                maptiles[0].tile.addTo(map);
+            }else{
+                map.removeLayer(maptiles[0].tile);
+                maptiles[selectedtiles].tile.addTo(map);
+            }
+        });
 
-        //var leafletIcon = L.icon({
-        //    iconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-green.png',
-        //    shadowUrl: 'https://leafletjs.com/examples/custom-icons/leaf-shadow.png',
-        //    iconSize: [10, 10],
-        //    iconAnchor: [20, 20],
-        //    popupAnchor: [20, 2]
-        //});
+        //------------------------
+        
+        async function fetchData(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-        var marker01 = L.marker([49.2455289, 17.6650464]).addTo(map);
-        //var marker1 = L.marker([49.2455289, 17.6650464]).addTo(map);
-        var marker02 = L.marker([49.2037778, 17.6838272]).addTo(map);
+fetchData(features).then((geoJsonData) => {
+  const feature = L.geoJSON(geoJsonData, {
+    onEachFeature: function(feature, layer) {
+      addPopup(layer);
+    },
+  });
+  drawnItems.addLayer(feature);
+});
 
-        //var circle = L.circle([50, 20], { color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 500 }).addTo(map);
-        //var polygon = L.polygon([[50, 10], [40, 20], [60, 30], [70, 40]]).addTo(map);
+// --------------------------------------------------
+// draw section
 
-        marker01.bindPopup("<h1>Pasecká klubovna</h1><br>Zde odpradávna sídlí naše středisko, však již od roku asi 2019 zde našemu oddílu zůstala jen kóje")
-        //marker1.bindPopup("").openPopup()
-        //marker1.bindPopup("")
-        marker02.bindPopup("<b>Kudlovská klubovna</b><br>zde se můžeme teoreticky scházet")
-            //circle.bindPopup("Hey");
-            //polygon.bindPopup("hello");
+map.addControl(
+  new L.Control.Draw({
+    edit: {
+      featureGroup: drawnItems,
+      poly: {
+        allowIntersection: false,
+      },
+    },
+    draw: {
+      polygon: {
+        allowIntersection: false,
+        showArea: true,
+      },
+    },
+  })
+);
 
-            //polygon.bindPopup("hello");
+map.on(L.Draw.Event.CREATED, function(event) {
+  let layer = event.layer;
+  let feature = (layer.feature = layer.feature || {});
+  let type = event.layerType;
+
+  feature.type = feature.type || "Feature";
+  let props = (feature.properties = feature.properties || {});
+
+  props.type = type;
+
+  if (type === "circle") {
+    props.radius = layer.getRadius();
+  }
+
+  drawnItems.addLayer(layer);
+  addPopup(layer);
+});
+
+var openLayer;
+
+function addPopup(layer) {
+  let popupContent = `
+    <form>Link:<br>
+    <input type="text" id="input_link" value="${
+      layer.feature.properties.link || ""
+    }"><br>
+    Cena:<br><input type="text" id="input_cena" value=${
+      layer.feature.properties.cena || ""
+    }><br>
+    Area:<br><input type="text" id="input_area" value=${
+      layer.feature.properties.area || ""
+    }><br>
+    Image:<br><input type="text" id="input_image" value=${
+      layer.feature.properties.image || ""
+    }><br>
+    </form>`;
+
+  layer.on("popupopen", function(e) {
+    var _layer = e.popup._source;
+    if (!_layer.feature) {
+      _layer.feature = {
+        properties: {},
+      };
+    }
+  });
+
+  layer.on("popupclose", function(e) {
+    openLayer = undefined;
+  });
+
+  layer.bindPopup(popupContent).openPopup();
+}
+
+L.DomEvent.on(document, "keyup", function() {
+  if (openLayer) {
+    link = document.getElementById("input_link").value;
+    cena = document.getElementById("input_cena").value;
+    area = document.getElementById("input_area").value;
+    image = document.getElementById("input_image").value;
+
+    openLayer.feature.properties.link = link;
+    openLayer.feature.properties.cena = cena;
+    openLayer.feature.properties.area = area;
+    openLayer.feature.properties.image = image;
+    openLayer.feature.properties.N = 1;
+  }
+});
+
+function save() {
+  var data = JSON.stringify(drawnItems.toGeoJSON());
+  console.log(data);
+  const a = document.createElement("a");
+  const file = new Blob([data], { type: "text/json" });
+  a.href = URL.createObjectURL(file);
+  a.download = "features.json";
+  a.click();
+}
     </script>
 </body>
 </html>
