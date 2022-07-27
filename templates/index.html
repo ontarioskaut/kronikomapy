@@ -4,10 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <title>OntarioMapy</title>
+    <link rel="shortcut icon" href="static/imgs/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
           integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
           crossorigin="" />
-    
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
             integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
             crossorigin=""></script>
@@ -21,29 +23,13 @@
             left: 0;
             right: 0
         }
-        #export {
-            position: absolute;
-            top: 600px;
-            z-index: 10000;
-            background: white;
-            color: black;
-            padding: 6px;
-            border-radius: 4px;
-            font-family: 'Helvetica Neue';
-            cursor: pointer;
-            font-size: 12px;
-            text-decoration: none;
-        }
-        #export {
-            top: 370px;
-        }
     </style>
 </head>
 
 <body>
-    <a href='#' id='export' onclick="save()">Export Features to GeoJSON</a>
     <div id="map"></div>
     <script>
+        var openLayer;
         var features = "/mapfeatures.json";
         var maptiles = [
         {name: "OpenStreetMap_Mapnik", tile: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' })},
@@ -67,8 +53,7 @@
             }
         });
 
-        //------------------------
-        
+        //load and show geojson features
         async function fetchData(url) {
             try {
                 const response = await fetch(url);
@@ -79,112 +64,44 @@
             }
         }
 
-fetchData(features).then((geoJsonData) => {
-  const feature = L.geoJSON(geoJsonData, {
-    onEachFeature: function(feature, layer) {
-      addPopup(layer);
-    },
-  });
-  drawnItems.addLayer(feature);
-});
+        fetchData(features).then((geoJsonData) => {
+            const feature = L.geoJSON(geoJsonData, {
+                onEachFeature: function(feature, layer) { //assign popup to all features
+                    addPopup(layer);
+                },
+            });
+            drawnItems.addLayer(feature);
+        });
 
-// --------------------------------------------------
-// draw section
+        function addPopup(layer) {
+            let popupContent = `
+                <b id="header"></b>
+                <p id="details"></p>
+                <p id="details1"></p>
+                <p id="details2"></p>
+            `;
 
-map.addControl(
-  new L.Control.Draw({
-    edit: {
-      featureGroup: drawnItems,
-      poly: {
-        allowIntersection: false,
-      },
-    },
-    draw: {
-      polygon: {
-        allowIntersection: false,
-        showArea: true,
-      },
-    },
-  })
-);
 
-map.on(L.Draw.Event.CREATED, function(event) {
-  let layer = event.layer;
-  let feature = (layer.feature = layer.feature || {});
-  let type = event.layerType;
+            layer.on("popupopen", function(e) {
+                setTimeout(function(){
+                    openLayer = e.popup._source;
+                    if (!openLayer.feature) {
+                        openLayer.feature = {
+                            properties: {},
+                        };
+                    }
+                    document.getElementById("header").innerHTML = openLayer.feature.properties.link || "";
+                    document.getElementById("details").innerHTML = openLayer.feature.properties.cena || "";
+                    document.getElementById("details1").innerHTML = openLayer.feature.properties.area || "";
+                    document.getElementById("details2").innerHTML = openLayer.feature.properties.image || "";
+                }, 200);   
+            });
 
-  feature.type = feature.type || "Feature";
-  let props = (feature.properties = feature.properties || {});
-
-  props.type = type;
-
-  if (type === "circle") {
-    props.radius = layer.getRadius();
-  }
-
-  drawnItems.addLayer(layer);
-  addPopup(layer);
-});
-
-var openLayer;
-
-function addPopup(layer) {
-  let popupContent = `
-    <form>Link:<br>
-    <input type="text" id="input_link" value="${
-      layer.feature.properties.link || ""
-    }"><br>
-    Cena:<br><input type="text" id="input_cena" value=${
-      layer.feature.properties.cena || ""
-    }><br>
-    Area:<br><input type="text" id="input_area" value=${
-      layer.feature.properties.area || ""
-    }><br>
-    Image:<br><input type="text" id="input_image" value=${
-      layer.feature.properties.image || ""
-    }><br>
-    </form>`;
-
-  layer.on("popupopen", function(e) {
-    var _layer = e.popup._source;
-    if (!_layer.feature) {
-      _layer.feature = {
-        properties: {},
-      };
-    }
-  });
-
-  layer.on("popupclose", function(e) {
-    openLayer = undefined;
-  });
-
-  layer.bindPopup(popupContent).openPopup();
-}
-
-L.DomEvent.on(document, "keyup", function() {
-  if (openLayer) {
-    link = document.getElementById("input_link").value;
-    cena = document.getElementById("input_cena").value;
-    area = document.getElementById("input_area").value;
-    image = document.getElementById("input_image").value;
-
-    openLayer.feature.properties.link = link;
-    openLayer.feature.properties.cena = cena;
-    openLayer.feature.properties.area = area;
-    openLayer.feature.properties.image = image;
-    openLayer.feature.properties.N = 1;
-  }
-});
-
-function save() {
-  var data = JSON.stringify(drawnItems.toGeoJSON());
-  console.log(data);
-  const a = document.createElement("a");
-  const file = new Blob([data], { type: "text/json" });
-  a.href = URL.createObjectURL(file);
-  a.download = "features.json";
-  a.click();
-}
+            layer.on("popupclose", function(e) {
+                openLayer = undefined;
+            });
+            layer.bindPopup(popupContent).openPopup();
+        }
     </script>
 </body>
 </html>

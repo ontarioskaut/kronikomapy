@@ -1,7 +1,8 @@
 #!/usr/bin/python3
-from bottle import route, run ,redirect,request,default_app, static_file, template
+from bottle import route, run ,redirect,request,default_app, static_file, template, response
 from beaker.middleware import SessionMiddleware
-import json
+import os, json
+from datetime import datetime
 
 root = "/"
 users = []
@@ -14,6 +15,19 @@ session_opts = {
     'sessioni.auto':True
 }
 
+def enable_cors(fn):
+    def _enable_cors(*args, **kwargs):
+        # set CORS headers
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+
+        if request.method != 'OPTIONS':
+            # actual request; reply with the actual response
+            return fn(*args, **kwargs)
+
+    return _enable_cors
+    
 def reloadusers():
     try:
         with open('users.json') as f:
@@ -74,9 +88,30 @@ def mainpage():
     return template('templates/index.html')
 
 @route('/mapfeatures.json')
+@enable_cors
 def features():
     return static_file("features.json", root="static");
 
+@route('/static/<something>')
+@enable_cors
+def staticfile(something):
+    return static_file(something, root="static");
+    
+@route('/save', method='POST')
+def save():
+    username = authorized();
+    if not username:
+        return "unauthorized"
+    else:
+        s = request.environ.get('beaker.session')
+        data = request.forms.get('data')
+        if len(data)>20:
+            os.system("cp static/features.json static/oldfeatures/fatures-" + datetime.now().strftime("%d_%m_%Y-%H_%M_%S") + ".json")
+            with open('static/features.json', 'w') as f:
+                f.write(data)
+                return "ok"
+        else:
+            return "too short"
 app = default_app()
 app = SessionMiddleware(app, session_opts)
 run(app=app,host='localhost', port=6969, debug=True, server='paste') 
