@@ -13,6 +13,7 @@ prostě interaktivní mapa jako doplněk k oddílové kronice
 - další pole? (rok...)
 - vytvořit favicon
 - provázání se zbytkem kroniky
+- podpora více map od více uživatelů (aby to případně mohly využít ostatní, když už to běži)
 ## poznámky
 - backend je v pythonu3 s bottlepy
   - tzn. v základu se musí zvlášť spouštět (udělat service v systemd - viz `kronikomapy.service`) a nastavit reverzní proxy
