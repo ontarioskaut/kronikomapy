@@ -57,6 +57,20 @@
         var map = L.map('map').setView([49.699, 15.781], 8); //show ČR
         var drawnItems = L.featureGroup().addTo(map); //map features
         maptiles[selectedtiles].tile.addTo(map);
+
+        var church_icon = L.icon({
+            iconUrl: "static/church.png"
+            //iconSize: 
+            //iconAnchor
+            //popupAnchor
+        });
+        var house_icon = L.icon({
+            iconUrl: "static/house.png"
+            //iconSize: 
+            //iconAnchor
+            //popupAnchor
+        });
+        //L.marker([51.5, -0.09], {icon: greenIcon}).addTo(map);
         
         map.on("zoomend", function(e){ //change tiles to #0 if zoomed over limZoom opion
 	        if(map.getZoom() > maptiles[selectedtiles].tile.options.limZoom){
@@ -81,9 +95,22 @@
 
         fetchData(features).then((geoJsonData) => {
             const feature = L.geoJSON(geoJsonData, {
-                onEachFeature: function(feature, layer) { //assign popup to all features
+                onEachFeature: function (feature, layer) { //assign popup to all features
                     addPopup(layer);
                     drawnItems.addLayer(layer);
+                    console.log(layer);
+                    if (layer.feature.geometry.type == "Point" && typeof layer.feature.properties.icon != "undefined")
+                    {
+
+                        var tmp_icon = L.icon({
+                            iconUrl: "static/" + layer.feature.properties.icon
+                            //iconSize: 
+                            //iconAnchor
+                            //popupAnchor
+                        });
+
+                        layer.setIcon(tmp_icon);
+                    }
                 },
             });
             
@@ -128,6 +155,14 @@
             let popupContent = `
                 <form>Nadpis:<br>
                 <input type="text" id="input_link""><br>
+                
+                <label for="input_icn">Choose an icon:</label><br>
+                <select name="icon_type" id="input_icon">
+                  <option value="house.png">Budova</option>
+                  <option value="church.png" selected>Modlitební místečko</option>
+                  <option value="">Obyčejný</option>
+                </select><br>
+                
                 Text1:<br><input type="text" id="input_cena"><br>
                 Text2:<br><input type="text" id="input_area"><br>
                 Text3:<br><input type="text" id="input_image"><br>
@@ -143,6 +178,7 @@
                         };
                     }else{ //update text fields
                         document.getElementById("input_link").value = openLayer.feature.properties.link || "";
+                        document.getElementById("input_icon").value = openLayer.feature.properties.icon || "";
                         document.getElementById("input_cena").value = openLayer.feature.properties.cena || "";
                         document.getElementById("input_area").value = openLayer.feature.properties.area || "";
                         document.getElementById("input_image").value = openLayer.feature.properties.image || "";
@@ -159,6 +195,7 @@
         L.DomEvent.on(document, "keyup", function() { //update properties from fields
             if (openLayer) {
                 openLayer.feature.properties.link = document.getElementById("input_link").value;
+                openLayer.feature.properties.icon = document.getElementById("input_icon").value;
                 openLayer.feature.properties.cena = document.getElementById("input_cena").value;
                 openLayer.feature.properties.area = document.getElementById("input_area").value;
                 openLayer.feature.properties.image = document.getElementById("input_image").value;
@@ -201,5 +238,4 @@
         }
     </script>
 </body>
-</html>
 </html>
