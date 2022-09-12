@@ -1,0 +1,28 @@
+.hidden {
+    display: none;
+}
+.input {
+    width: 100%;
+}
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0
+}
+#export {
+    position: absolute;
+    top: 600px;
+    z-index: 10000;
+    background: white;
+    color: black;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+}
+#export {
+    top: 370px;
+}

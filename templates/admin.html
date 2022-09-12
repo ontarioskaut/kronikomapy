@@ -14,108 +14,17 @@
             integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
             crossorigin=""></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" rel="stylesheet" />
+    <link href="/static/css/main.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0
-        }
-        #export {
-            position: absolute;
-            top: 600px;
-            z-index: 10000;
-            background: white;
-            color: black;
-            padding: 6px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            text-decoration: none;
-        }
-        #export {
-            top: 370px;
-        }
+
     </style>
 </head>
 
 <body>
     <div id="map"></div>
+    <script src="/static/js/map.js"></script>
     <script>
-        var openLayer;
-        var features = "/mapfeatures.json";
-        var maptiles = [
-        {name: "OpenStreetMap_Mapnik", tile: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' })},
-        {name: "OpenTopoMap", tile: L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)' })},
-        {name: "Esri_NatGeoWorldMap", tile: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}", {limZoom: 11, attribution: 'Tiles &copy; Esri &mdash; National Geographic' })},
-        {name: "MapTiler", tile: L.tileLayer("https://api.maptiler.com/maps/outdoor/{z}/{x}/{y}.png?key=BzCrc2jUfp7PsqtssatV", {attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>' })},
-        ];
-        selectedtiles = 2;
-
-        var map = L.map('map').setView([49.699, 15.781], 8); //show ČR
-        var drawnItems = L.featureGroup().addTo(map); //map features
-        maptiles[selectedtiles].tile.addTo(map);
-
-        var church_icon = L.icon({
-            iconUrl: "static/church.png"
-            //iconSize: 
-            //iconAnchor
-            //popupAnchor
-        });
-        var house_icon = L.icon({
-            iconUrl: "static/house.png"
-            //iconSize: 
-            //iconAnchor
-            //popupAnchor
-        });
-        //L.marker([51.5, -0.09], {icon: greenIcon}).addTo(map);
-        
-        map.on("zoomend", function(e){ //change tiles to #0 if zoomed over limZoom opion
-	        if(map.getZoom() > maptiles[selectedtiles].tile.options.limZoom){
-                map.removeLayer(maptiles[selectedtiles].tile);
-                maptiles[0].tile.addTo(map);
-            }else{
-                map.removeLayer(maptiles[0].tile);
-                maptiles[selectedtiles].tile.addTo(map);
-            }
-        });
-
-        //load and show geojson features
-        async function fetchData(url) {
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                return data;
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        fetchData(features).then((geoJsonData) => {
-            const feature = L.geoJSON(geoJsonData, {
-                onEachFeature: function (feature, layer) { //assign popup to all features
-                    addPopup(layer);
-                    drawnItems.addLayer(layer);
-                    console.log(layer);
-                    if (layer.feature.geometry.type == "Point" && typeof layer.feature.properties.icon != "undefined")
-                    {
-
-                        var tmp_icon = L.icon({
-                            iconUrl: "static/" + layer.feature.properties.icon
-                            //iconSize: 
-                            //iconAnchor
-                            //popupAnchor
-                        });
-
-                        layer.setIcon(tmp_icon);
-                    }
-                },
-            });
-            
-        });
-
         //add draw control
         map.addControl(
             new L.Control.Draw({
@@ -152,17 +61,19 @@
         document.getElementsByClassName("leaflet-draw-toolbar")[1].insertAdjacentHTML('beforeend', '<a class="leaflet-draw-edit-remove" onclick="save()" style="background-image:none;" href="#" title="Save changes"><img src="static/save.png" width="20px" style="margin:5px;"></a>')
 
         function addPopup(layer) {
+            let add = "";
+            if(layer.feature.geometry.type != "Point"){
+                add = "hidden";
+            }
             let popupContent = `
                 <form>Nadpis:<br>
                 <input type="text" id="input_link""><br>
-                
-                <label for="input_icn">Choose an icon:</label><br>
-                <select name="icon_type" id="input_icon">
+                <label for="input_icn" class="input ` + add + `">Choose an icon:</label>
+                <select name="icon_type" id="input_icon" onchange="updatedata()" class="input ` + add + `">
                   <option value="house.png">Budova</option>
                   <option value="church.png" selected>Modlitební místečko</option>
-                  <option value="">Obyčejný</option>
-                </select><br>
-                
+                  <option value="normal.png">Obyčejný</option>
+                </select>
                 Text1:<br><input type="text" id="input_cena"><br>
                 Text2:<br><input type="text" id="input_area"><br>
                 Text3:<br><input type="text" id="input_image"><br>
@@ -178,7 +89,7 @@
                         };
                     }else{ //update text fields
                         document.getElementById("input_link").value = openLayer.feature.properties.link || "";
-                        document.getElementById("input_icon").value = openLayer.feature.properties.icon || "";
+                        document.getElementById("input_icon").value = openLayer.feature.properties.icon || "normal.png";
                         document.getElementById("input_cena").value = openLayer.feature.properties.cena || "";
                         document.getElementById("input_area").value = openLayer.feature.properties.area || "";
                         document.getElementById("input_image").value = openLayer.feature.properties.image || "";
@@ -191,16 +102,22 @@
             });
             layer.bindPopup(popupContent).openPopup();
         }
-
-        L.DomEvent.on(document, "keyup", function() { //update properties from fields
+        
+        function updatedata(){
             if (openLayer) {
+                console.log(openLayer);
                 openLayer.feature.properties.link = document.getElementById("input_link").value;
                 openLayer.feature.properties.icon = document.getElementById("input_icon").value;
                 openLayer.feature.properties.cena = document.getElementById("input_cena").value;
                 openLayer.feature.properties.area = document.getElementById("input_area").value;
                 openLayer.feature.properties.image = document.getElementById("input_image").value;
                 openLayer.feature.properties.N = 1;
+                changeicon(openLayer);
             }
+        }
+        
+        L.DomEvent.on(document, "keyup", function() { //update properties from fields
+            updatedata();
         });
 
         function download() { //save and download geojson

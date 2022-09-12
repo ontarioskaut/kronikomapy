@@ -92,7 +92,7 @@ def mainpage():
 def features():
     return static_file("features.json", root="static");
 
-@route('/static/<something>')
+@route('/static/<something:path>')
 @enable_cors
 def staticfile(something):
     return static_file(something, root="static");
